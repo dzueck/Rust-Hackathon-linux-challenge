@@ -1,11 +1,9 @@
+use std::fs::create_dir;
+
 use fuser::{mount2, MountOption};
 
-pub const MOUNT_POINT: &str = "/home/dylan/c";
+pub const MOUNT_POINT: &str = "./challenge";
 fn main() {
-    println!("Starting logger");
-    // set_logger(&SIMPLE_LOGGER).expect("Faied to setup logger");
-    println!("set logger");
-
     let fs = main_fs::MainFs::new();
     println!("mounting");
     
