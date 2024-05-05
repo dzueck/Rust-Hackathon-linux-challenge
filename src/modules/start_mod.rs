@@ -23,6 +23,10 @@ You are free to do them in any order.
 You may have to code a custom program (in Rust if you want) to complete some challenges.
 Remember that you may have to think outside the box to solve the challenge.
 Things are not always as they seem.
+
+If you want to make your own files, you can make any file with a name that starts with an _ to avoid conflicts.
+Additionally, any directory that starts with an _ will allow you to make any files you want inside of it.
+You can use this to make areas to use tools like GCC or cargo.
 ";
 
 pub fn start() {
