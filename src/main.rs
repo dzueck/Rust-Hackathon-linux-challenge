@@ -26,3 +26,6 @@ mod errors;
 mod link;
 mod user_files;
 mod special_files;
+mod file_helpers;
+mod modules;
+mod background_tasks;

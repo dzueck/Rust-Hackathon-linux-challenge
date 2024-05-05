@@ -2,7 +2,7 @@ use std::{collections::HashMap, ffi::{c_int, OsStr, OsString}, iter::repeat, os:
 
 use fuser::FileAttr;
 
-use crate::{dirs::Dir, errors::{DIR_NOT_EMPTY, FILE_NOT_FOUND, NOT_SUPPORTED, PERMISSION_DENIED}, files::File, main_fs::Ino};
+use crate::{dirs::Dir, errors::{DIR_NOT_EMPTY, FILE_NOT_FOUND, NOT_SUPPORTED, PERMISSION_DENIED}, file_helpers::read, files::File, main_fs::Ino};
 
 #[derive(Debug)]
 pub struct UserFile {
@@ -84,18 +84,7 @@ impl File for UserFile {
     }
     
     fn read(&mut self, offset: i64, size: u32, flags: i32) -> Result<&[u8], c_int> {
-        if offset.is_negative() ||  offset as usize >= self.data.len() {
-            return Ok(&[]);
-        }
-
-        let offset = offset as usize;
-        let end = offset + size as usize;
-
-        if end >= self.data.len() {
-            return Ok(&self.data[offset..]);
-        } else {
-            return Ok(&self.data[offset..end]);
-        }
+        read(&self.data, offset, size)
     }
     
     fn write(&mut self, offset: i64, data: &[u8], write_flags: u32, flags: i32) -> Result<u32, c_int> {

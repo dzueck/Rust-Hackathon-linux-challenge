@@ -2,20 +2,28 @@ use std::{collections::HashMap, ffi::{c_int, OsStr, OsString}, os::unix::ffi::Os
 
 use fuser::{FileAttr, Filesystem, KernelConfig, Request};
 use lazy_static::lazy_static;
+use users::{get_current_gid, get_current_uid, UsersCache};
 
-use crate::{dirs::Dir, errors::{NOT_SUPPORTED, PERMISSION_DENIED}, files::File, link::Link, user_files::{NormalDir, UserFile}};
+use crate::{dirs::Dir, errors::{NOT_SUPPORTED, PERMISSION_DENIED}, files::File, link::Link, modules::start_mod, user_files::{NormalDir, UserFile}};
 
 const DEFAULT_CACHE: Duration = Duration::ZERO;
 
 static NEXT_INO: AtomicU64 = AtomicU64::new(2);
 
 lazy_static! {
-    static ref DATA: Mutex<FsData> = {
+    pub static ref DATA: Mutex<FsData> = {
         let mut inos = HashMap::new();
-        inos.insert(1, Ino::Dir(Box::new(NormalDir::new(&OsString::from_str("root").unwrap(), false, 1, 0o777, 0, 0, 0))));
+        inos.insert(1, Ino::Dir(Box::new(NormalDir::new(&OsString::from_str("root").unwrap(), false, 1, 0o777, *UID, *GID, 0))));
         Mutex::new(FsData {
             inos
         })
+    };
+    
+    pub static ref UID: u32 = {
+        get_current_uid()
+    };
+    pub static ref GID: u32 = {
+        get_current_gid()
     };
 }
 
@@ -123,8 +131,8 @@ impl Ino {
 }
 
 #[derive(Debug)]
-struct FsData{
-    inos: HashMap<u64, Ino>,
+pub struct FsData{
+    pub inos: HashMap<u64, Ino>,
     // fhs: HashMap<u64, Ino>,
 }
 
@@ -138,6 +146,7 @@ impl MainFs {
 impl Filesystem for MainFs {
     fn init(&mut self, _req: &Request<'_>, _config: &mut KernelConfig) -> Result<(), c_int> {
         println!("Init");
+        start_mod::start();
         Ok(())
     }
 
@@ -148,8 +157,8 @@ impl Filesystem for MainFs {
     fn lookup(&mut self, _req: &Request<'_>, parent: u64, name: &OsStr, reply: fuser::ReplyEntry) {
         //println!("Lookup {parent}:{name:?}");
         let data = DATA.lock().unwrap();
-        match data.inos.get(&parent).unwrap().unwrap_dir().lookup_child(name, &data.inos) {
-            Ok(cino) => reply.entry(&DEFAULT_CACHE, data.inos.get(&cino).unwrap().attr(), 0),
+        match lookup(parent, name, &data) {
+            Ok(cattr) => reply.entry(&DEFAULT_CACHE, cattr, 0),
             Err(err) => reply.error(err),
         }
     }
@@ -355,8 +364,13 @@ impl Filesystem for MainFs {
         
     // }
 
-    // fn open(&mut self, _req: &Request<'_>, _ino: u64, _flags: i32, reply: fuser::ReplyOpen) {
-    // }
+    fn open(&mut self, _req: &Request<'_>, ino: u64, flags: i32, reply: fuser::ReplyOpen) {
+        let mut data: std::sync::MutexGuard<FsData> = DATA.lock().unwrap();
+        match data.inos.get_mut(&ino).unwrap().unwrap_file_mut().open() {
+            Ok(()) => reply.opened(get_unique_ino(), 0),
+            Err(e) => reply.error(e),
+        }
+    }
 
     fn read(
             &mut self,
@@ -370,7 +384,7 @@ impl Filesystem for MainFs {
             reply: fuser::ReplyData,
         ) {
         println!("Read: {ino} off: {offset} size: {size}");
-        let mut data = DATA.lock().unwrap();
+        let mut data: std::sync::MutexGuard<FsData> = DATA.lock().unwrap();
         let file = data.inos.get_mut(&ino).unwrap();
         if let Some(file) = file.try_unwrap_file_mut() {
             match file.read(offset, size, flags) {
@@ -411,18 +425,22 @@ impl Filesystem for MainFs {
         
     // }
 
-    // fn release(
-    //         &mut self,
-    //         _req: &Request<'_>,
-    //         _ino: u64,
-    //         _fh: u64,
-    //         _flags: i32,
-    //         _lock_owner: Option<u64>,
-    //         _flush: bool,
-    //         reply: fuser::ReplyEmpty,
-    //     ) {
-        
-    // }
+    fn release(
+            &mut self,
+            _req: &Request<'_>,
+            ino: u64,
+            _fh: u64,
+            _flags: i32,
+            _lock_owner: Option<u64>,
+            _flush: bool,
+            reply: fuser::ReplyEmpty,
+        ) {
+        let mut data: std::sync::MutexGuard<FsData> = DATA.lock().unwrap();
+        match data.inos.get_mut(&ino).unwrap().unwrap_file_mut().release() {
+            Ok(()) => reply.ok(),
+            Err(e) => reply.error(e),
+        }
+    }
 
     // fn fsync(&mut self, _req: &Request<'_>, ino: u64, fh: u64, datasync: bool, reply: fuser::ReplyEmpty) {
         
@@ -490,6 +508,14 @@ impl Filesystem for MainFs {
 
 }
 
-fn get_unique_ino() -> u64 {
+pub fn get_unique_ino() -> u64 {
     NEXT_INO.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
+pub fn lookup<'a>(parent: u64, name: &OsStr, data: &'a FsData) -> Result<&'a FileAttr, c_int> {
+    //println!("Lookup {parent}:{name:?}");
+    match data.inos.get(&parent).unwrap().unwrap_dir().lookup_child(name, &data.inos) {
+        Ok(cino) => return Ok(data.inos.get(&cino).unwrap().attr()),
+        Err(err) => return Err(err),
+    }
 }
