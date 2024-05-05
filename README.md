@@ -1,0 +1,1 @@
+To get it to work make sure to run the install script install.sh. Then you can run cargo run to start it. The challenge will be located in the challenge directory. Only enter the directory when you have run cargo run.
