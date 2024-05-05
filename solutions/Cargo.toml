@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+libc = "0.2.154"
+
 
 [[bin]]
 name = "the_door"
@@ -14,3 +16,7 @@ path = "src/the_door.rs"
 [[bin]]
 name = "classroom"
 path = "src/classroom.rs"
+
+[[bin]]
+name = "bathroom"
+path = "src/bathroom.rs"

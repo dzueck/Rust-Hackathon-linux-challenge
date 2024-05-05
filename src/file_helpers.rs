@@ -33,5 +33,5 @@ pub fn victory_file() -> Box<dyn File> {
 pub fn nothing(){}
 
 pub fn text_file(name: &str, text: &str) -> Box<dyn File> {
-    Box::new(TriggerFile::new(nothing, &OsString::from_str(name).unwrap(), str_to_vec(text), get_unique_ino(), DEFAULT_MODE, 0))
+    Box::new(TriggerFile::new(nothing, name, str_to_vec(text), get_unique_ino(), DEFAULT_MODE, 0))
 }

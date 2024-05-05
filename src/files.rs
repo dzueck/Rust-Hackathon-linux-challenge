@@ -20,6 +20,6 @@ pub trait File: Send + Debug {
     fn read(&mut self, offset: i64, size: u32, flags: i32) -> Result<&[u8], c_int>;
     fn write(&mut self, offset: i64, data: &[u8], write_flags: u32, flags: i32) -> Result<u32, c_int>;
     fn delete(&mut self) -> Result<(), c_int>;
-    fn open(&mut self) -> Result<(), c_int> {Ok(())}
+    fn open(&mut self, flags: i32) -> Result<u32, c_int> {Ok(flags as u32)}
     fn release(&mut self) -> Result<(), c_int> {Ok(())}
 }

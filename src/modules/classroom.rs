@@ -2,36 +2,46 @@ use std::{ffi::{c_int, OsStr, OsString}, str::FromStr, time::SystemTime};
 
 use fuser::FileAttr;
 
-use crate::{background_tasks::{add_file, DEFAULT_MODE}, errors::PERMISSION_DENIED, file_helpers::{read, str_to_vec, text_file}, files::File, main_fs::{get_unique_ino, GID, UID}};
+use crate::{background_tasks::{add_file, DEFAULT_MODE}, errors::{FILE_NOT_FOUND, PERMISSION_DENIED}, file_helpers::{read, str_to_vec, text_file, victory_file}, files::File, main_fs::{get_unique_ino, GID, UID}};
 
 use super::many_open::ManyOpenFile;
 
 
 const TEACHER_MESSAGE: &str = 
 "I have been looking for Sally for the last 10 minutes but I can't find her.
-She was here earlier, but once I brought the lesson plan out she disapeared.
-I guess she doesn't like reading or writing.
+She was here earlier, but once I said we were studying math instead of reading and writing she started hiding.
+I guess she really likes reading and writing.
 ";
 
 const SALLY_MESSAGE: &str = 
-"Oh no more reading or writing!
-YEAYYYYYYY!
-I can finally come back to class.
+"Oh we are going back to reading and writing!
+YEAYYY!
+Ill come back to class.
 ";
 
 const KID_1: &str =
-"
+"Ok boomer!
+";
+
+const KID_2: &str =
+"I love Skibidi Toilet!
+";
+
+const KID_3: &str =
+"STOP HITTING ME BILLY!
 ";
 
 pub fn start() {
     add_file("Classroom", Box::new(SallyFile::new(victory, "Sally", str_to_vec(SALLY_MESSAGE), get_unique_ino())));
     add_file("Classroom", text_file("Teacher", TEACHER_MESSAGE));
 
-    //add_file("Classroom", text_file("Billy", text))
+    add_file("Classroom", text_file("Billy", KID_1));
+    add_file("Classroom", text_file("Timmy", KID_2));
+    add_file("Classroom", text_file("John", KID_3));
 }
 
 fn victory() {
-
+    add_file("Classroom", victory_file());
 }
 
 
@@ -114,9 +124,13 @@ impl File for SallyFile {
         Err(PERMISSION_DENIED)
     }
 
-    fn open(&mut self) -> Result<(), c_int> {
-        println!("OPend sldkjfslkjdf");
-        Ok(())
+    fn open(&mut self, flags: i32) -> Result<u32, c_int> {
+        println!("{:x} {} {}", flags, flags & libc::O_RDONLY, flags & libc::O_RDWR);
+        if flags & libc::O_RDWR != 0 {
+            Ok(0)
+        } else {
+            Err(FILE_NOT_FOUND)
+        }
     }
 
 }

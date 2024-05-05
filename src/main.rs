@@ -1,6 +1,6 @@
 use fuser::{mount2, MountOption};
 
-const MOUNT_POINT: &str = "/home/dylan/c";
+pub const MOUNT_POINT: &str = "/home/dylan/c";
 fn main() {
     println!("Starting logger");
     // set_logger(&SIMPLE_LOGGER).expect("Faied to setup logger");

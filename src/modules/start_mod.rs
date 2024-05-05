@@ -1,8 +1,8 @@
 use std::{ffi::OsString, str::FromStr};
 
-use crate::{background_tasks::{add_file, DEFAULT_MODE}, file_helpers::str_to_vec, main_fs::get_unique_ino, special_files::trigger_file::TriggerFile};
+use crate::{background_tasks::{add_file, rm_file, DEFAULT_MODE}, file_helpers::str_to_vec, main_fs::get_unique_ino, special_files::trigger_file::TriggerFile};
 
-use super::{classroom, many_open};
+use super::{bathroom, classroom, correct_order, find_the_suid, kill_them_all, many_open};
 
 
 
@@ -26,16 +26,20 @@ Things are not always as they seem.
 ";
 
 pub fn start() {
-    add_file("", Box::new(TriggerFile::new(spawn_welcome_2, &OsString::from_str("Welcome").unwrap(), str_to_vec(WELCOME_MESSAGE), get_unique_ino(), DEFAULT_MODE, 0)));
+    add_file("", Box::new(TriggerFile::new(spawn_welcome_2, "Welcome", str_to_vec(WELCOME_MESSAGE), get_unique_ino(), DEFAULT_MODE, 0)));
 
-    start_mods();
+    // start_mods();
 }
 
 fn spawn_welcome_2() {
-    add_file("", Box::new(TriggerFile::new(start_mods, &OsString::from_str("Welcome?").unwrap(), str_to_vec(WELCOME_MESSAGE_2), get_unique_ino(), DEFAULT_MODE, 0)));
+    add_file("", Box::new(TriggerFile::new(start_mods, "Welcome?", str_to_vec(WELCOME_MESSAGE_2), get_unique_ino(), DEFAULT_MODE, 0)));
 }
 
 fn start_mods() {
+    rm_file("Welcome");
     many_open::start();
     classroom::start();
+    correct_order::start();
+    //bathroom::start();
+    kill_them_all::start();
 }

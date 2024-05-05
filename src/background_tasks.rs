@@ -12,6 +12,38 @@ pub fn add_file(path: &str, file: Box<dyn File>) {
     });
 }
 
+pub fn rm_file(path: &str) {
+    let path = path.to_string();
+    println!("Removing-------------------");
+    thread::spawn(move || {
+        _rm_file(&path);
+    });
+}
+
+pub fn _rm_file(path: &str) {
+    let mut data = DATA.lock().unwrap();
+    let path = PathBuf::from_str(path).unwrap();
+    let filename = path.file_name().unwrap();
+    let path = path.parent().unwrap();
+    let mut parent = 1;
+
+    for component in path.components() {
+        let Component::Normal(next) = component else {
+            continue;
+        };
+
+        if let Ok(next_attr) = lookup(parent, next, &data) {
+            parent = next_attr.ino;
+        } else {
+            panic!("Given rm target path that does not exist");
+        }
+    }
+
+    let file_ino = data.inos.get(&parent).unwrap().unwrap_dir().lookup_child(filename, &data.inos).unwrap();
+    data.inos.get_mut(&parent).unwrap().unwrap_dir_mut().remove_child(file_ino).unwrap();
+    data.inos.remove(&file_ino);
+}
+
 fn _add_file(path: &str, file: Box<dyn File>) {
     let mut data = DATA.lock().unwrap();
     let path = PathBuf::from_str(path).unwrap();

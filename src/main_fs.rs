@@ -265,9 +265,11 @@ impl Filesystem for MainFs {
     }
 
     fn unlink(&mut self, _req: &Request<'_>, parent: u64, name: &std::ffi::OsStr, reply: fuser::ReplyEmpty) {
+        println!("Unlink");
         let mut data = DATA.lock().unwrap();
         let child = data.inos.get(&parent).unwrap().unwrap_dir().lookup_child(name, &data.inos).unwrap();
         if let Err(e) = data.inos.get_mut(&parent).unwrap().unwrap_dir_mut().remove_child(child) {
+            println!("ERROR 2");
             reply.error(e);
             return;
         }
@@ -276,6 +278,7 @@ impl Filesystem for MainFs {
             if data.inos.get_mut(&parent).unwrap().unwrap_dir_mut().add_child(child).is_err() {
                 println!("Warning: unlink lost a file");
             }
+            println!("ERROR 1");
             reply.error(e);
             return;
         }
@@ -366,8 +369,8 @@ impl Filesystem for MainFs {
 
     fn open(&mut self, _req: &Request<'_>, ino: u64, flags: i32, reply: fuser::ReplyOpen) {
         let mut data: std::sync::MutexGuard<FsData> = DATA.lock().unwrap();
-        match data.inos.get_mut(&ino).unwrap().unwrap_file_mut().open() {
-            Ok(()) => reply.opened(get_unique_ino(), 0),
+        match data.inos.get_mut(&ino).unwrap().unwrap_file_mut().open(flags) {
+            Ok(flags) => reply.opened(get_unique_ino(), flags),
             Err(e) => reply.error(e),
         }
     }
@@ -422,7 +425,7 @@ impl Filesystem for MainFs {
     }
 
     // fn flush(&mut self, _req: &Request<'_>, ino: u64, fh: u64, lock_owner: u64, reply: fuser::ReplyEmpty) {
-        
+    //     println!("FLUSH------------------------------------------")
     // }
 
     fn release(
@@ -435,6 +438,7 @@ impl Filesystem for MainFs {
             _flush: bool,
             reply: fuser::ReplyEmpty,
         ) {
+        println!("RELEASE: ----------------------------------");
         let mut data: std::sync::MutexGuard<FsData> = DATA.lock().unwrap();
         match data.inos.get_mut(&ino).unwrap().unwrap_file_mut().release() {
             Ok(()) => reply.ok(),
@@ -443,7 +447,7 @@ impl Filesystem for MainFs {
     }
 
     // fn fsync(&mut self, _req: &Request<'_>, ino: u64, fh: u64, datasync: bool, reply: fuser::ReplyEmpty) {
-        
+    //     println!("SYNC------------------------------------------")
     // }
 
     // fn opendir(&mut self, _req: &Request<'_>, _ino: u64, _flags: i32, reply: fuser::ReplyOpen) {
